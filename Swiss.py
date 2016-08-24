@@ -7,16 +7,24 @@ class Player:
 	used to mark a player as a dummy created for the purpose of resolving byes with odd player counts.
 	"""
 
-	def ___init___(self, ID, skill, isdummy):
-		self.ID = ID
+	def ___init___(self, id, skill, isdummy):
+		self.id = id
 		self.skill = skill
 		self.score = 0
 		self.opponents = []
-		self.SoS = 0
+		self.sos = 0
 		self.isdummy = isdummy
+		self.roundsplayed = 0
+
 
 	def log_opponent(opponent):
 		self.opponents.append(player2.ID)
+
+	def pointsperround():
+		if roundsplayed>0:
+			return float(self.score)/self.roundsplayed
+		else:
+			return 0
 
 
 def create_tourney(skills):
@@ -25,6 +33,7 @@ def create_tourney(skills):
 	Each has a skill defined by the passed variable skills, which should be a list of integers. While these can be arranged
 	in any order in the passed list, descending order means that the best player will be player 1, the second best player 2,
 	etc, which makes analysing the results more intuitive later.
+	This should be used to create a global variable, as the tourney list will be accessed by various other functions.
 	"""
 
 	numplayers = len(skills)
@@ -73,4 +82,30 @@ def resolve_matchup(player1, player2):
 	player2.score += 3*(2-player1wins)
 	player1.log_opponent(player2)
 	player2.log_opponent(player1)
+
+
+def update_sos(player, tourney):
+	"""
+	This is passed a Player object, and directly updates their Strength of Schedule by modifying the variable.
+	"""
+	strength = 0
+	for item in player.opponents:
+		strength += tourney[item].score
+	strength = float(strength)/player.roundsplayed
+	player.sos = strength
+	
+
+def rank_players(tourney):
+	"""
+	Returns a list of the IDs of all the players in the tournament, sorted by points, then by strength of schedule.
+	"""
+	#Update strength of schedule first; done here to save time because ranking is the only place it's relevant.
+	for player in tourney:
+		update_sos(player)
+
+
+	rankedlist = [x for x in tourney]
+
+
+
 
