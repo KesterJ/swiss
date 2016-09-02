@@ -25,7 +25,7 @@ class Player:
 			return float(self.score)/self.roundsplayed
 		else:
 			return 0
-
+	#Done? Could still add more though.
 
 def create_tourney(skills):
 	"""
@@ -45,7 +45,7 @@ def create_tourney(skills):
 	if numplayers%2 == 1:
 		tourney[numplayers+1] = Player(numplayers+1, 0, True)
 	return tourney
-
+	#Done
 
 
 def resolve_matchup(player1, player2):
@@ -82,18 +82,21 @@ def resolve_matchup(player1, player2):
 	player2.score += 3*(2-player1wins)
 	player1.log_opponent(player2)
 	player2.log_opponent(player1)
+	#Done
 
 
 def update_sos(player, tourney):
 	"""
 	This is passed a Player object, and directly updates their Strength of Schedule by modifying the variable.
+	Used by rank_players function.
 	"""
 	strength = 0
 	for item in player.opponents:
 		strength += tourney[item].score
 	strength = float(strength)/player.roundsplayed
 	player.sos = strength
-	
+	#Done
+
 
 def rank_players(tourney):
 	"""
@@ -102,10 +105,40 @@ def rank_players(tourney):
 	#Update strength of schedule first; done here to save time because ranking is the only place it's relevant.
 	for player in tourney:
 		update_sos(player)
+	playerlist = [x for x in tourney.items()]
+	#Not done
+	rankedlist = [y.id for y in playerlist.sorted(playerlist, key=attrgetter('score', 'sos'), reverse=True)]
+	return rankedlist
 
 
-	rankedlist = [x for x in tourney]
+def pair_players(tourney):
+	"""
+	This looks at the points players have, and then analyses a cost function which minimises for the sum of within-pair
+	score differentials. Needs to check byes too, but this can be on the todo list for now.
+	"""
+	###TODO: Implement making sure lowest ranked player who has not yet had a bye is the one who gets the bye.
 
 
 
+def do_round(tourney):
+	ranks = rank_players(tourney)
+	pairs = pair_players(tourney)
+	for pair in pairs:
+		resolve_matchup(tourney[pair[0]], tourney[pair[1]])
 
+
+def run_tourney(tourney, totalrounds):
+	currentround = 1
+	while currentround <= totalrounds:
+		do_round(tourney)
+		###TODO: Maybe log some results here too for use later.
+	finalranks = rank_players(tourney)
+	#This next loop is just to get players skills as well, which are not provided by rank_players.
+	results = [(tourney[playerid].id, tourney[playerid].skill) for playerid in finalranks]
+	return results
+
+
+def main():
+	skills = range(1,97,3)
+	tourney = create_tourney()
+	results = run_tourney(tourney)
