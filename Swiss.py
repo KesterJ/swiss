@@ -1,15 +1,15 @@
 import random
 import networkx as nx
+from operator import itemgetter, attrgetter
 
-
-class Player:
+class Player(object):
 	"""
 	A player in a Swiss system; has an ID (fixed), a skill level (integer, fixed at creation, goes from 0-100),
 	plus a score (integer) and a list of opponents played so far (list of integers). There is also a boolean variable isdummy,
 	used to mark a player as a dummy created for the purpose of resolving byes with odd player counts.
 	"""
 
-	def ___init___(self, id, skill, isdummy):
+	def __init__(self, id, skill, isdummy):
 		self.id = id
 		self.skill = skill
 		self.score = 0
@@ -19,10 +19,10 @@ class Player:
 		self.roundsplayed = 0
 
 
-	def log_opponent(opponent):
-		self.opponents.append(player2.ID)
+	def log_opponent(self, opponent):
+		self.opponents.append(opponent)
 
-	def pointsperround():
+	def pointsperround(self):
 		if roundsplayed>0:
 			return float(self.score)/self.roundsplayed
 		else:
@@ -60,9 +60,9 @@ def resolve_matchup(player1, player2):
 
 	###TODO: Add code to account for intentional draws.
 	#Checks if either player is a dummy to allow instant resolution of those matches
-	if player1.isdummy = True:
+	if player1.isdummy == True:
 		player1wins = 0
-	elif player2.isdummy = True:
+	elif player2.isdummy == True:
 		player1wins = 2
 	#Below is code for actual resolution of a match
 	else:
@@ -82,8 +82,10 @@ def resolve_matchup(player1, player2):
 	#Update player objects with results (+3 score for each win) and log them as opponents of each other
 	player1.score += 3*player1wins
 	player2.score += 3*(2-player1wins)
-	player1.log_opponent(player2)
-	player2.log_opponent(player1)
+	player1.log_opponent(player2.id)
+	player2.log_opponent(player1.id)
+	player1.roundsplayed += 1
+	player2.roundsplayed += 1
 	#Done
 
 
@@ -93,9 +95,10 @@ def update_sos(player, tourney):
 	Used by rank_players function.
 	"""
 	strength = 0
-	for item in player.opponents:
-		strength += tourney[item].score
-	strength = float(strength)/player.roundsplayed
+	if player.roundsplayed != 0:
+		for item in player.opponents:
+			strength += tourney[item].score
+		strength = float(strength)/player.roundsplayed
 	player.sos = strength
 	#Done
 
@@ -106,10 +109,10 @@ def rank_players(tourney):
 	"""
 	#Update strength of schedule first; done here to save time because ranking is the only place it's relevant.
 	for player in tourney:
-		update_sos(player)
-	playerlist = [x for x in tourney.items()]
+		update_sos(tourney[player], tourney)
+	playerlist = [tourney[x] for x in tourney]
 	#Not done
-	rankedlist = [y.id for y in playerlist.sorted(playerlist, key=attrgetter('score', 'sos'), reverse=True)]
+	rankedlist = [y.id for y in sorted(playerlist, key=attrgetter('score', 'sos'), reverse=True)]
 	return rankedlist
 
 
@@ -119,28 +122,29 @@ def pair_players(tourney):
 	score differentials. Needs to check byes too, but this can be on the todo list for now.
 	"""
 	###TODO: Implement making sure lowest ranked player who has not yet had a bye is the one who gets the bye.
-	###TODO: IMplement handling byes at all
+	###TODO: Implement handling byes at all
 	pairgraph = nx.Graph()
 	#Build graph
 	pairgraph.add_nodes_from(tourney.keys())
 	#Add edges one by one with a weight based on score
 	for player in tourney:
 		for playerid in tourney.keys():
-			if playerid not in player.opponents and not pairgraph.hasedge(playerid, player):
+			if playerid not in tourney[player].opponents and not pairgraph.has_edge(playerid, player):
 				#Subtracted from 1000 so we can calc max weight matching when we really want a minimum, and square it so that 
 				#higher weight is put on keeping more different scores apart
-				scoreweight = 1000 - abs(player.score - tourney.playerid.score)**2 
+				scoreweight = 1000 - abs(tourney[player].score - tourney[playerid].score)**2 
 				pairgraph.add_edge(player, playerid, weight = scoreweight)
 	#Create pairings
 	pairings = nx.max_weight_matching(pairgraph)
 	###TODO: Return pairings and translate
-	return pairlist
+	return pairings
 
 def do_round(tourney):
 	ranks = rank_players(tourney)
 	pairs = pair_players(tourney)
+	print('Pairings for round:', pairs)
 	while pairs:
-		pair = random.randrange(len(pairs))+1
+		pair = random.choice(list(pairs.keys()))
 		resolve_matchup(tourney[pair], tourney[pairs[pair]])
 		del pairs[pairs[pair]]
 		del pairs[pair]
@@ -149,15 +153,27 @@ def do_round(tourney):
 def run_tourney(tourney, totalrounds):
 	currentround = 1
 	while currentround <= totalrounds:
+		print('Round', currentround)
 		do_round(tourney)
+		currentround += 1
 		###TODO: Maybe log some results here too for use later.
 	finalranks = rank_players(tourney)
 	#This next loop is just to get players skills as well, which are not provided by rank_players.
-	results = [(tourney[playerid].id, tourney[playerid].skill) for playerid in finalranks]
+	results = [tourney[playerid] for playerid in finalranks]
 	return results
+
+
+def display_results(resultslist):
+	for i in range(len(resultslist)):
+		print(i+1,'. ',resultslist[i].id,' ',resultslist[i].skill,' ',resultslist[i].score,' ',resultslist[i].sos,'\n')
+
 
 
 def main():
 	skills = range(1,97,3)
 	tourney = create_tourney(skills)
-	results = run_tourney(tourney)
+	results = run_tourney(tourney, 7)
+	display_results(results)
+
+
+main()
