@@ -1,6 +1,8 @@
 import random
 import networkx as nx
 from operator import itemgetter, attrgetter
+import matplotlib.pyplot as plt
+
 
 class Player(object):
 	"""
@@ -132,15 +134,20 @@ def pair_players(tourney):
 			if playerid not in tourney[player].opponents and not pairgraph.has_edge(playerid, player):
 				#Subtracted from 1000 so we can calc max weight matching when we really want a minimum, and square it so that 
 				#higher weight is put on keeping more different scores apart
-				scoreweight = 1000 - abs(tourney[player].score - tourney[playerid].score)**2 
+				scoreweight = 1000 - abs(tourney[player].score - tourney[playerid].score)**2 + random.random()*0.25
 				pairgraph.add_edge(player, playerid, weight = scoreweight)
 	#Create pairings
 	pairings = nx.max_weight_matching(pairgraph)
 	###TODO: Return pairings and translate
 	return pairings
 
+
 def do_round(tourney):
 	ranks = rank_players(tourney)
+	#Temp solution for displaying results as we go
+	ranklist = [tourney[playerid] for playerid in ranks]
+	display_results(ranklist)
+	#End of temp solution
 	pairs = pair_players(tourney)
 	print('Pairings for round:', pairs)
 	while pairs:
@@ -168,12 +175,25 @@ def display_results(resultslist):
 		print(i+1,'. ',resultslist[i].id,' ',resultslist[i].skill,' ',resultslist[i].score,' ',resultslist[i].sos,'\n')
 
 
+def display_cuts(cutslist):
+	xaxis = []
+	yaxis = []
+	for playerid in range(1,33):
+		xaxis.append(str(playerid))
+		yaxis.append(cutslist.count(playerid))
+	plt.bar(xaxis, yaxis)
+	plt.show()
+
 
 def main():
-	skills = range(1,97,3)
-	tourney = create_tourney(skills)
-	results = run_tourney(tourney, 7)
-	display_results(results)
-
+	cuts = []
+	for i in range(10000):
+		skills = range(1,97,3)
+		tourney = create_tourney(skills)
+		results = run_tourney(tourney, 5)
+		#display_results(results)
+		for j in range(8):
+			cuts.append(results[j].id)
+	display_cuts(cuts)
 
 main()
