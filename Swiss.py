@@ -1,4 +1,6 @@
 import random
+import networkx as nx
+
 
 class Player:
 	"""
@@ -117,7 +119,20 @@ def pair_players(tourney):
 	score differentials. Needs to check byes too, but this can be on the todo list for now.
 	"""
 	###TODO: Implement making sure lowest ranked player who has not yet had a bye is the one who gets the bye.
-
+	###TODO: IMplement handling byes at all
+	pairgraph = nx.Graph()
+	#Build graph
+	pairgraph.add_nodes_from(tourney.keys())
+	#Add edges one by one with a weight based on score
+	for player in tourney:
+		for playerid in tourney.keys():
+			if playerid not in player.opponents and not pairgraph.hasedge(playerid, player):
+				#Subtracted from 100 so we can calc max weight matching when we really want a minimum
+				scoreweight = 100 - abs(player.score - tourney.playerid.score) 
+				pairgraph.add_edge(player, playerid, weight = scoreweight)
+	#Create pairings
+	pairings = nx.max_weight_matching(pairgraph)
+	###TODO: Return pairings and translate
 
 
 def do_round(tourney):
@@ -140,5 +155,5 @@ def run_tourney(tourney, totalrounds):
 
 def main():
 	skills = range(1,97,3)
-	tourney = create_tourney()
+	tourney = create_tourney(skills)
 	results = run_tourney(tourney)
