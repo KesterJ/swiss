@@ -127,19 +127,23 @@ def pair_players(tourney):
 	for player in tourney:
 		for playerid in tourney.keys():
 			if playerid not in player.opponents and not pairgraph.hasedge(playerid, player):
-				#Subtracted from 100 so we can calc max weight matching when we really want a minimum
-				scoreweight = 100 - abs(player.score - tourney.playerid.score) 
+				#Subtracted from 1000 so we can calc max weight matching when we really want a minimum, and square it so that 
+				#higher weight is put on keeping more different scores apart
+				scoreweight = 1000 - abs(player.score - tourney.playerid.score)**2 
 				pairgraph.add_edge(player, playerid, weight = scoreweight)
 	#Create pairings
 	pairings = nx.max_weight_matching(pairgraph)
 	###TODO: Return pairings and translate
-
+	return pairlist
 
 def do_round(tourney):
 	ranks = rank_players(tourney)
 	pairs = pair_players(tourney)
-	for pair in pairs:
-		resolve_matchup(tourney[pair[0]], tourney[pair[1]])
+	while pairs:
+		pair = random.randrange(len(pairs))+1
+		resolve_matchup(tourney[pair], tourney[pairs[pair]])
+		del pairs[pairs[pair]]
+		del pairs[pair]
 
 
 def run_tourney(tourney, totalrounds):
