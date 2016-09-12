@@ -52,7 +52,7 @@ def create_tourney(skills):
 	#Done
 
 
-def resolve_matchup(player1, player2):
+def resolve_matchup(player1, player2, draw):
 	"""
 	Takes two players, and calculates the result of a match between them. Two equally matched players will have a
 	50 percent chance of winning each, side so 1/4 sweep for player 1, 1/2 split, 1/4 sweep for player 2. For each point of
@@ -66,6 +66,9 @@ def resolve_matchup(player1, player2):
 		player1wins = 0
 	elif player2.isdummy == True:
 		player1wins = 2
+	#This is if an Intentional Draw happens
+	elif draw:
+		player1wins = 1
 	#Below is code for actual resolution of a match
 	else:
 		player1winchance = 0.5 + 0.005 * (player1.skill - player2.skill)
@@ -142,17 +145,23 @@ def pair_players(tourney):
 	return pairings
 
 
-def do_round(tourney):
+def do_round(tourney, currentround):
+	global idcount
 	ranks = rank_players(tourney)
+	top8 = ranks[:8]
 	#Temp solution for displaying results as we go
-	ranklist = [tourney[playerid] for playerid in ranks]
-	display_results(ranklist)
+	#ranklist = [tourney[playerid] for playerid in ranks]
+	#display_results(ranklist)
 	#End of temp solution
 	pairs = pair_players(tourney)
-	print('Pairings for round:', pairs)
+	#print('Pairings for round:', pairs)
 	while pairs:
 		pair = random.choice(list(pairs.keys()))
-		resolve_matchup(tourney[pair], tourney[pairs[pair]])
+		if tourney[pair].id in top8 and tourney[pairs[pair]].id in top8 and currentround >= 3:
+			resolve_matchup(tourney[pair], tourney[pairs[pair]], True)
+			idcount += 1
+		else:
+			resolve_matchup(tourney[pair], tourney[pairs[pair]], False)
 		del pairs[pairs[pair]]
 		del pairs[pair]
 
@@ -160,8 +169,8 @@ def do_round(tourney):
 def run_tourney(tourney, totalrounds):
 	currentround = 1
 	while currentround <= totalrounds:
-		print('Round', currentround)
-		do_round(tourney)
+		#print('Round', currentround)
+		do_round(tourney, currentround)
 		currentround += 1
 		###TODO: Maybe log some results here too for use later.
 	finalranks = rank_players(tourney)
@@ -186,14 +195,18 @@ def display_cuts(cutslist):
 
 
 def main():
+	global idcount
+	idcount = 0
 	cuts = []
 	for i in range(10000):
+		print('On tourney',i)
 		skills = range(1,97,3)
 		tourney = create_tourney(skills)
 		results = run_tourney(tourney, 5)
 		#display_results(results)
 		for j in range(8):
 			cuts.append(results[j].id)
+	print('Total number of intentional draws:',idcount)
 	display_cuts(cuts)
 
 main()
